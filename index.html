@@ -217,6 +217,33 @@
             display: none !important;
         }
 
+        /* --- 判定中オーバーレイのスタイル --- */
+        #judging-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000; /* スコアオーバーレイより手前 */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #judging-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #judging-overlay p {
+            font-size: 3em;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+
         /* --- スコアオーバーレイのスタイル --- */
         #score-overlay {
             position: fixed; /* 画面全体に固定 */
@@ -264,12 +291,21 @@
         }
 
         /* スコアの行 */
-        .overlay-content p:first-of-type { 
+        .overlay-content p.main-score { 
             font-size: 1.8em; 
             color: #00ff99;
             font-weight: bold;
-            margin-bottom: 30px;
+            margin-bottom: 5px; /* ボーナス表示との間隔 */
         }
+        /* 完踏みボーナス表示 */
+        .overlay-content p.bonus-info {
+            font-size: 0.8em; /* 小さく */
+            color: #ffeb3b; /* 黄色に */
+            margin-top: 0;
+            margin-bottom: 30px; /* 次の項目との間隔 */
+            font-weight: bold;
+        }
+
 
         /* お題と解答の行 */
         .overlay-content p.primary-info {
@@ -333,14 +369,20 @@
             .overlay-content h3 {
                 font-size: 2.5em;
             }
-            .overlay-content p:first-of-type {
+            .overlay-content p.main-score {
                 font-size: 2.5em;
+            }
+            .overlay-content p.bonus-info {
+                font-size: 1em;
             }
             .overlay-content p.primary-info {
                 font-size: 2em; /* タブレット以上でさらに大きく */
             }
             .overlay-content p.vowel-info {
                 font-size: 1.1em; /* タブレット以上で少し大きく */
+            }
+            #judging-overlay p {
+                font-size: 4em;
             }
         }
     </style>
@@ -382,11 +424,15 @@
         </div>
     </div>
 
+    <div id="judging-overlay">
+        <p>判定中...</p>
+    </div>
+
     <div id="score-overlay">
         <div class="overlay-content">
             <h3>今回のスコア</h3>
-            <p><span id="overlay-stage-score">0</span> 点</p>
-            <p class="primary-info"><span id="overlay-theme-word"></span></p>
+            <p class="main-score"><span id="overlay-stage-score">0</span> 点</p>
+            <p class="bonus-info hidden" id="overlay-bonus-info"></p> <p class="primary-info"><span id="overlay-theme-word"></span></p>
             <p class="vowel-info">(<span id="overlay-theme-vowels"></span>)</p>
             <p class="primary-info"><span id="overlay-input-rhyme"></span></p>
             <p class="vowel-info">(<span id="overlay-input-vowels"></span>)</p>
@@ -420,6 +466,10 @@
         const overlayThemeVowelsDisplay = document.getElementById('overlay-theme-vowels');
         const overlayInputRhymeDisplay = document.getElementById('overlay-input-rhyme');
         const overlayInputVowelsDisplay = document.getElementById('overlay-input-vowels');
+        const overlayBonusInfo = document.getElementById('overlay-bonus-info'); // 完踏みボーナス表示用
+
+        // 判定中オーバーレイのDOM要素
+        const judgingOverlay = document.getElementById('judging-overlay');
 
 
         // ゲームの状態変数
@@ -432,8 +482,9 @@
 
         // --- APIエンドポイント ---
         const WIKIPEDIA_RANDOM_API_URL = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&list=random&rnnamespace=0&rnlimit=1&origin=*';
-        // ExcelAPIの漢字→ひらがな変換エンドポイント
-        const EXCEL_API_KANJI2KANA_URL = 'https://api.excelapi.org/language/kanji2kana';
+        
+        // ★★★ ここをあなたのデプロイしたGAS WebアプリのURLに書き換えてください ★★★
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwnTyiWTLacKCtMBCjtUaic9FZF6HxdD3iYvU-2-BlW1Dner8joHWif2vxNeGV8uUlU/exec'; 
 
         /**
          * Wikipediaのランダム記事からお題となる単語を取得する関数
@@ -448,10 +499,20 @@
                 const data = await response.json();
                 const pages = data.query.random;
                 if (pages && pages.length > 0) {
-                    const title = pages[0].title;
-                    // 記事タイトルが長すぎたり、不適切な場合は再取得を試みる
-                    if (title.length > 15 || title.includes('一覧') || title.includes('カテゴリ') || title.includes('の人物') || title.includes('駅') || title.includes('年')) {
-                        console.warn('タイトルが長すぎるか不適切です。再取得します。', title);
+                    let title = pages[0].title;
+                    
+                    // 括弧以降の文字列を除去
+                    const bracketIndex = title.indexOf('(');
+                    if (bracketIndex !== -1) {
+                        title = title.substring(0, bracketIndex).trim();
+                    }
+                    // その他の不要な文字も除去 (例: -、・、〜など)
+                    title = title.replace(/[・\-〜]/g, '');
+
+
+                    // 記事タイトルが長すぎたり、空、不適切な場合は再取得を試みる
+                    if (title.length === 0 || title.length > 15 || title.includes('一覧') || title.includes('カテゴリ') || title.includes('の人物') || title.includes('駅') || title.includes('年') || title.includes('目録')) {
+                        console.warn('タイトルが長すぎる、空、または不適切です。再取得します。', title);
                         return getRandomJapaneseWord(); // 再帰的に再取得
                     }
                     return title;
@@ -465,33 +526,39 @@
             }
         }
 
-        // --- 漢字を平仮名に変換する関数 (ExcelAPIを使用) ---
+        // --- 漢字を平仮名に変換する関数 (GAS Webアプリ経由) ---
         /**
-         * 日本語テキストの平仮名読みを取得する関数（ExcelAPIを使用）
+         * 日本語テキストの平仮名読みを取得する関数（GAS Webアプリ経由）
          * @param {string} text - 読み仮名を取得したい日本語テキスト
          * @returns {Promise<string>} テキストの平仮名読み
          */
         async function convertToHiragana(text) {
-            // ExcelAPIはGETパラメータでtextを渡す
+            // 空文字列の場合は空を返す
+            if (!text || text.trim() === '') {
+                return '';
+            }
+
+            // URLパラメータとしてテキストを付加
             const params = new URLSearchParams({
                 text: text
             }).toString();
 
             try {
-                const response = await fetch(`${EXCEL_API_KANJI2KANA_URL}?${params}`);
+                // GAS WebアプリのエンドポイントにGETリクエストを送る
+                const response = await fetch(`${GAS_WEB_APP_URL}?${params}`);
 
                 if (!response.ok) {
                     const errorBody = await response.text();
-                    console.error(`ExcelAPI HTTP error! status: ${response.status}, body: ${errorBody}`);
-                    throw new Error(`ExcelAPI error: ${response.status}`);
+                    console.error(`GAS Web App error! status: ${response.status}, body: ${errorBody}`);
+                    throw new Error(`GAS Web App error: ${response.status}`);
                 }
                 
-                // ExcelAPIは直接平仮名の文字列を返します
-                const hiraganaResult = await response.text();
+                // GAS Webアプリから返ってきたテキストをそのまま取得
+                const hiraganaResult = response.text(); // ここを修正 (fetch APIはresponse.text()を使います)
                 return hiraganaResult;
 
             } catch (error) {
-                console.error('ExcelAPIの呼び出し中にエラーが発生しました:', error);
+                console.error('平仮名変換中にエラーが発生しました:', error);
                 // エラー時は簡易的な処理として入力テキストを小文字にして返す
                 return text.toLowerCase();
             }
@@ -499,6 +566,7 @@
 
 
         // 母音抽出用のマッピング
+        // 「ん」を含めるため、ここには含めない（後で処理）
         const vowelMap = {
             'あ': 'あ', 'い': 'い', 'う': 'う', 'え': 'え', 'お': 'お',
             'か': 'あ', 'き': 'い', 'く': 'う', 'け': 'え', 'こ': 'お',
@@ -535,13 +603,13 @@
 
         /**
          * 日本語のひらがなから対応する母音を抽出する関数。
-         * 「ん」や「ー」は無視し、拗音も考慮します。
+         * 「ん」は'n'として扱い、拗音も考慮します。
          * @param {string} hiraganaText - ひらがな表記のテキスト
          * @returns {string} 抽出された母音の文字列
          */
         function extractVowels(hiraganaText) {
             let extracted = '';
-            // カタカナをひらがなに変換 (ExcelAPIの結果がひらがなであることを前提にしていますが、念のため)
+            // カタカナをひらがなに変換
             let normalizedText = hiraganaText.normalize('NFKC').replace(/[\u30a1-\u30ff]/g, function(c) {
                 return String.fromCharCode(c.charCodeAt(0) - 0x60);
             });
@@ -551,8 +619,13 @@
                 let nextChar = normalizedText[i + 1];
                 let combinedChar = char + nextChar; // 拗音チェック用
 
-                // 「ん」と「ー」（長音符）は無視
-                if (char === 'ん' || char === 'ー') {
+                // 「ん」を母音に含める (英語の'n'のように扱う)
+                if (char === 'ん') {
+                    extracted += 'ん'; 
+                    continue;
+                }
+                // 「ー」（長音符）は無視
+                if (char === 'ー') {
                     continue;
                 }
 
@@ -596,13 +669,17 @@
         // スコアを計算する関数
         async function calculateScore(themeWord, inputRhyme) {
             let score = 0;
+            let bonusText = ''; // 完踏みボーナス表示用テキスト
 
             // 1. 母音の編集距離に基づく基本スコア
-            const themeVowels = extractVowels(await convertToHiragana(themeWord));
-            const inputVowels = extractVowels(await convertToHiragana(inputRhyme));
+            const hiraganaTheme = await convertToHiragana(themeWord);
+            const hiraganaInput = await convertToHiragana(inputRhyme);
+            console.log(hiraganaTheme + "  " + hiraganaInput);
+            const themeVowels = extractVowels(hiraganaTheme);
+            const inputVowels = extractVowels(hiraganaInput);
 
             if (inputVowels.length === 0) {
-                return 0; // 入力がない場合はスコア0
+                return { score: 0, bonusText: '', themeVowels: themeVowels, inputVowels: inputVowels }; // 入力がない場合はスコア0
             }
 
             const dist = levenshteinDistance(themeVowels, inputVowels);
@@ -620,10 +697,11 @@
             // 2. 完踏みボーナス
             if (dist === 0 && themeVowels.length > 0) { // 母音が完全に一致し、かつ母音がある場合
                 score += 50; // 完踏みボーナスとして50点加算
+                bonusText = '完踏み+50'; // ボーナス表示テキスト設定
                 console.log("完踏みボーナス！");
             }
 
-            return Math.floor(score); // スコアは整数で返す
+            return { score: Math.floor(score), bonusText: bonusText, themeVowels: themeVowels, inputVowels: inputVowels }; // スコアとボーナス情報を返す
         }
 
         // --- ゲームロジック ---
@@ -641,6 +719,7 @@
             confirmButton.classList.remove('hidden'); // 確定ボタンは初期状態では表示
             confirmButton.disabled = false; // 確定ボタンを有効化
             scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+            judgingOverlay.classList.remove('show'); // 判定中オーバーレイを非表示に
         }
 
         // ステージ開始
@@ -659,6 +738,7 @@
             confirmButton.disabled = false; // 確定ボタンを有効化
             nextStageButton.classList.add('hidden'); // 次のステージボタンを隠す
             scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+            judgingOverlay.classList.remove('show'); // 判定中オーバーレイを非表示に
             inputRhyme.focus(); // 入力フィールドにフォーカス
 
             // お題の取得と表示
@@ -668,14 +748,14 @@
 
             // タイマーのリセットと開始
             timeLeft = stageTimeLimit;
-            updateTimerDisplay();
+            updateTimerDisplay(); // ここで呼び出されます
             timeBar.style.width = '100%';
             timeBar.style.backgroundColor = '#28a745'; // 緑色にリセット
 
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
-                updateTimerDisplay();
+                updateTimerDisplay(); // ここで呼び出されます
                 const progress = (timeLeft / stageTimeLimit) * 100;
                 timeBar.style.width = `${progress}%`;
 
@@ -691,6 +771,7 @@
         }
 
         // タイマー表示を更新
+        // ★★★ 抜けていた関数をここに追加しました！ ★★★
         function updateTimerDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
@@ -702,40 +783,59 @@
             clearInterval(timerInterval);
             confirmButton.disabled = true; // 確定ボタンを無効化
             confirmButton.classList.add('hidden'); // 確定ボタンを非表示に
+            inputRhyme.blur(); // 入力フィールドからフォーカスを外す
 
-            let score = 0;
+            // 判定中オーバーレイを表示
+            judgingOverlay.classList.add('show');
+            scoreOverlay.classList.remove('show'); // 念のためスコアオーバーレイは非表示に
+
+
+            let scoreResult; // score, bonusText, themeVowels, inputVowels を格納するオブジェクト
             let submittedRhyme = inputRhyme.value.trim(); // ユーザーの解答を保持
 
             if (isConfirmed) {
                 // 入力欄が空で確定した場合は0点
                 if (submittedRhyme === '') {
-                    score = 0;
+                    // 入力がない場合でも、お題の母音は取得しておく
+                    const themeVowelsForEmptyInput = extractVowels(await convertToHiragana(currentThemeWord));
+                    scoreResult = { score: 0, bonusText: '', themeVowels: themeVowelsForEmptyInput, inputVowels: '' };
                 } else {
-                    score = await calculateScore(currentThemeWord, submittedRhyme);
+                    scoreResult = await calculateScore(currentThemeWord, submittedRhyme);
                 }
             } else {
                 // 時間切れの場合は0点
-                score = 0;
+                // 時間切れの場合も、お題の母音は取得しておく
+                const themeVowelsForTimeout = extractVowels(await convertToHiragana(currentThemeWord));
+                scoreResult = { score: 0, bonusText: '', themeVowels: themeVowelsForTimeout, inputVowels: '' };
                 submittedRhyme = '時間切れ'; // 時間切れの場合の表示
             }
 
-            totalScore += score;
+            totalScore += scoreResult.score;
             totalScoreDisplay.textContent = totalScore;
             
-            // スコアと詳細をオーバーレイに表示して見せる
-            overlayStageScoreDisplay.textContent = score;
+            // 判定中オーバーレイを隠し、スコアオーバーレイを表示
+            judgingOverlay.classList.remove('show');
+            scoreOverlay.classList.add('show');
             
+            // スコアと詳細をオーバーレイに表示して見せる
+            overlayStageScoreDisplay.textContent = scoreResult.score;
+            
+            // 完踏みボーナス表示の更新
+            if (scoreResult.bonusText) {
+                overlayBonusInfo.textContent = scoreResult.bonusText;
+                overlayBonusInfo.classList.remove('hidden');
+            } else {
+                overlayBonusInfo.classList.add('hidden');
+            }
+
             // お題と解答はそのまま、母音はカッコで囲む
             overlayThemeWordDisplay.textContent = currentThemeWord;
-            const themeHiragana = await convertToHiragana(currentThemeWord);
-            overlayThemeVowelsDisplay.textContent = extractVowels(themeHiragana);
+            overlayThemeVowelsDisplay.textContent = scoreResult.themeVowels; // calculateScoreから直接取得
             
             // 時間切れの場合は入力解答がないので '時間切れ' を表示
             overlayInputRhymeDisplay.textContent = submittedRhyme;
             // 時間切れで母音抽出ができない場合は空にするか、適切な表示にする
-            overlayInputVowelsDisplay.textContent = (submittedRhyme === '時間切れ') ? '' : extractVowels(await convertToHiragana(submittedRhyme));
-
-            scoreOverlay.classList.add('show');
+            overlayInputVowelsDisplay.textContent = (submittedRhyme === '時間切れ') ? '' : scoreResult.inputVowels; // calculateScoreから直接取得
         }
 
         // リザルト画面表示
