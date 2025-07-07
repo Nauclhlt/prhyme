@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韻踏みゲーム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 基本リセットとフォント */
+        body {
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a1a2e; /* ダークな背景色 */
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* 画面いっぱいの高さを確保 */
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto; /* 必要に応じてスクロールバーを表示 */
+        }
+
+        #game-container {
+            background-color: #2a2a4a; /* コンテナの背景色 */
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            padding: 30px; /* 全体的な余白 */
+            width: 100%;
+            max-width: 700px; /* 最大幅を設定 */
+            text-align: center;
+            min-height: 480px; /* 最小の高さを設定（小さすぎると崩れるため） */
+            max-height: 90vh; /* 画面高さの90%を上限とする */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 子要素を上下に均等配置 */
+            align-items: center;
+            position: relative; /* 子要素の配置のために */
+        }
+
+        /* 共通画面スタイル */
+        .screen {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute; /* 親要素の同じ位置に重ねる */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 30px; /* game-containerのpaddingを考慮 */
+            box-sizing: border-box;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* 各画面のh1/h2の上下マージンを調整 */
+        .screen h1 {
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-size: 2.8em;
+            color: #f0f0f0;
+        }
+        .screen h2 {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            color: #f0f0f0;
+        }
+        #start-screen p {
+            font-size: 1.2em;
+            color: #b0b0d0;
+            margin-bottom: 40px;
+        }
+
+        /* ボタンのスタイル */
+        button {
+            background-color: #007bff; /* 青系のボタン */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px; /* 少し控えめに */
+            font-size: 1.0em; /* フォントサイズも少し小さく */
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 20px; /* ボタン上部の余白を確保 */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+            flex-shrink: 0; /* 小さい画面で縮まないように */
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* 入力ボックス */
+        input[type="text"] {
+            width: calc(100% - 40px); /* パディング分を考慮 */
+            padding: 12px 20px;
+            margin: 20px 0 25px; /* 上下マージンを調整 */
+            border: 2px solid #5a5a7a;
+            border-radius: 8px;
+            background-color: #3a3a5a;
+            color: #e0e0e0;
+            font-size: 1.2em;
+            outline: none;
+            transition: border-color 0.3s ease;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0; /* 小さい画面で縮まないように */
+        }
+
+        input[type="text"]::placeholder {
+            color: #b0b0d0;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+
+        /* ゲーム画面固有のスタイル */
+        #game-screen {
+            justify-content: flex-start; /* 上寄せに調整 */
+            gap: 15px; /* 各要素間の隙間 */
+        }
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px; /* タイマーバーとの間隔 */
+            font-size: 1.1em;
+            padding: 0 10px; /* 左右の余白 */
+        }
+
+        .timer-container {
+            width: 100%;
+            background-color: #5a5a7a;
+            border-radius: 5px;
+            overflow: hidden;
+            height: 30px; /* プログレスバーの高さとテキスト表示の余裕 */
+            margin-bottom: 20px; /* お題との間隔 */
+            position: relative; /* time-displayのposition:absoluteの基準 */
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+            display: flex; /* time-barとtime-displayをflexで配置 */
+            align-items: center; /* 垂直方向中央寄せ */
+            justify-content: center; /* 水平方向中央寄せ */
+        }
+
+        #time-bar {
+            position: absolute; /* 親要素内で絶対配置 */
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%; /* 初期は100% */
+            background-color: #28a745; /* 緑色のプログレスバー */
+            transition: width 0.9s linear; /* カウントダウンのアニメーション */
+            border-radius: 5px;
+            z-index: 1; /* カウントダウンテキストより下 */
+        }
+
+        #time-display {
+            position: relative; /* time-barより上に来るようにrelative */
+            color: #fff;
+            font-size: 1.1em; /* 少し大きめに */
+            font-weight: bold;
+            z-index: 2; /* time-barより上 */
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .challenge-area {
+            width: 100%;
+            flex-grow: 1; /* 残りのスペースを埋める */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 中央寄せ */
+            align-items: center;
+        }
+        .challenge-area .label {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #b0b0d0;
+        }
+        .challenge-area h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #f0f0f0;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        /* 既存のスコア表示は不要になったので削除または隠す */
+        .score-display {
+            display: none !important; 
+        }
+
+        #result-screen {
+            justify-content: center;
+        }
+        #final-score {
+            font-size: 4em;
+            color: #00ff99;
+            margin-top: 20px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- スコアオーバーレイのスタイル --- */
+        #score-overlay {
+            position: fixed; /* 画面全体に固定 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* 半透明の黒背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* 最前面に表示 */
+            opacity: 0; /* 最初は透明 */
+            visibility: hidden; /* 最初は非表示 */
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        #score-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .overlay-content {
+            background-color: #2a2a4a; /* コンテナと同じ背景色 */
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            transform: translateY(20px); /* 少し下にずらしてアニメーション */
+            transition: transform 0.3s ease;
+            width: 90%; /* 横幅を拡大 */
+            max-width: 600px; /* 最大幅を設定 */
+            box-sizing: border-box;
+        }
+
+        #score-overlay.show .overlay-content {
+            transform: translateY(0); /* 中央に移動 */
+        }
+
+        .overlay-content h3 {
+            font-size: 2em;
+            color: #f0f0f0;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        /* スコアの行 */
+        .overlay-content p:first-of-type { 
+            font-size: 1.8em; 
+            color: #00ff99;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        /* お題と解答の行 */
+        .overlay-content p.primary-info {
+            font-size: 1.5em; /* お題・解答を大きく */
+            color: #f0f0f0; /* 色を明るく */
+            margin-bottom: 5px; /* 母音との間隔 */
+            font-weight: bold;
+            word-break: break-word; /* 長い単語で改行 */
+        }
+
+        /* 母音の行 */
+        .overlay-content p.vowel-info {
+            font-size: 0.9em; /* 母音を小さく */
+            color: #ffeb3b; /* 黄色に強調 */
+            margin-top: 0;
+            margin-bottom: 20px; /* 次の項目との間隔 */
+            word-break: break-word; /* 長い単語で改行 */
+        }
+
+        .overlay-content button {
+            background-color: #28a745; /* 緑系の閉じるボタン */
+            margin-top: 0;
+        }
+
+        .overlay-content button:hover {
+            background-color: #218838;
+        }
+
+
+        /* iPadなどタブレット向け調整 (例: 768px以上) */
+        @media (min-width: 768px) {
+            #game-container {
+                padding: 50px;
+                min-height: 550px; /* 大きな画面で最低限の高さを確保 */
+                max-height: 80vh; /* デスクトップでは少し余裕を持たせる */
+            }
+            button {
+                padding: 12px 25px; /* 少し大きく */
+                font-size: 1.1em;
+                margin-top: 25px;
+            }
+            input[type="text"] {
+                padding: 15px 25px;
+                font-size: 1.4em;
+                margin: 25px 0 30px;
+            }
+            .screen h1 {
+                font-size: 3.5em;
+                margin-bottom: 40px;
+            }
+            .challenge-area h2 {
+                font-size: 3em;
+            }
+            .header-info {
+                font-size: 1.2em;
+                margin-bottom: 20px;
+            }
+            #final-score {
+                font-size: 5em;
+            }
+            .overlay-content h3 {
+                font-size: 2.5em;
+            }
+            .overlay-content p:first-of-type {
+                font-size: 2.5em;
+            }
+            .overlay-content p.primary-info {
+                font-size: 2em; /* タブレット以上でさらに大きく */
+            }
+            .overlay-content p.vowel-info {
+                font-size: 1.1em; /* タブレット以上で少し大きく */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1>韻踏みゲーム</h1>
+            <p>目指せ、韻の達人！</p>
+            <button id="start-button">ゲームスタート</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="header-info">
+                <p>ステージ: <span id="current-stage">1</span> / 10</p>
+                <p>総合スコア: <span id="total-score">0</span></p>
+            </div>
+            <div class="timer-container">
+                <div id="time-bar" class="progress-bar"></div>
+                <p id="time-display">0:00</p>
+            </div>
+            <div class="challenge-area">
+                <p class="label">お題:</p>
+                <h2 id="theme-word"></h2>
+                <input type="text" id="input-rhyme" placeholder="韻を踏んで入力...">
+                <button id="confirm-button">確定</button>
+            </div>
+            <div class="score-display">
+                <p>今回のスコア: <span id="stage-score">0</span></p>
+            </div>
+            <button id="next-stage-button" class="hidden">次のステージへ</button>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <h1>ゲーム終了！</h1>
+            <p>あなたの総合スコア:</p>
+            <h2 id="final-score">0</h2>
+            <button id="back-to-title-button">タイトル画面へ</button>
+        </div>
+    </div>
+
+    <div id="score-overlay">
+        <div class="overlay-content">
+            <h3>今回のスコア</h3>
+            <p><span id="overlay-stage-score">0</span> 点</p>
+            <p class="primary-info"><span id="overlay-theme-word"></span></p>
+            <p class="vowel-info">(<span id="overlay-theme-vowels"></span>)</p>
+            <p class="primary-info"><span id="overlay-input-rhyme"></span></p>
+            <p class="vowel-info">(<span id="overlay-input-vowels"></span>)</p>
+            <button id="close-overlay-button">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultScreen = document.getElementById('result-screen');
+
+        const startButton = document.getElementById('start-button');
+        const currentStageDisplay = document.getElementById('current-stage');
+        const totalScoreDisplay = document.getElementById('total-score');
+        const timeBar = document.getElementById('time-bar');
+        const timeDisplay = document.getElementById('time-display');
+        const themeWordDisplay = document.getElementById('theme-word');
+        const inputRhyme = document.getElementById('input-rhyme');
+        const confirmButton = document.getElementById('confirm-button');
+        const nextStageButton = document.getElementById('next-stage-button');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const backToTitleButton = document.getElementById('back-to-title-button');
+
+        // スコアオーバーレイ関連のDOM要素
+        const scoreOverlay = document.getElementById('score-overlay');
+        const overlayStageScoreDisplay = document.getElementById('overlay-stage-score');
+        const closeOverlayButton = document.getElementById('close-overlay-button');
+        const overlayThemeWordDisplay = document.getElementById('overlay-theme-word');
+        const overlayThemeVowelsDisplay = document.getElementById('overlay-theme-vowels');
+        const overlayInputRhymeDisplay = document.getElementById('overlay-input-rhyme');
+        const overlayInputVowelsDisplay = document.getElementById('overlay-input-vowels');
+
+
+        // ゲームの状態変数
+        let currentStage = 0;
+        let totalScore = 0;
+        let stageTimeLimit = 60; // 各ステージの制限時間（秒）
+        let timeLeft = stageTimeLimit;
+        let timerInterval;
+        let currentThemeWord = '';
+
+        // --- APIエンドポイント ---
+        const WIKIPEDIA_RANDOM_API_URL = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&list=random&rnnamespace=0&rnlimit=1&origin=*';
+        // ExcelAPIの漢字→ひらがな変換エンドポイント
+        const EXCEL_API_KANJI2KANA_URL = 'https://api.excelapi.org/language/kanji2kana';
+
+        /**
+         * Wikipediaのランダム記事からお題となる単語を取得する関数
+         * @returns {Promise<string>} ランダムな日本語の単語
+         */
+        async function getRandomJapaneseWord() {
+            try {
+                const response = await fetch(WIKIPEDIA_RANDOM_API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                const pages = data.query.random;
+                if (pages && pages.length > 0) {
+                    const title = pages[0].title;
+                    // 記事タイトルが長すぎたり、不適切な場合は再取得を試みる
+                    if (title.length > 15 || title.includes('一覧') || title.includes('カテゴリ') || title.includes('の人物') || title.includes('駅') || title.includes('年')) {
+                        console.warn('タイトルが長すぎるか不適切です。再取得します。', title);
+                        return getRandomJapaneseWord(); // 再帰的に再取得
+                    }
+                    return title;
+                }
+                throw new Error('No random page found.');
+            } catch (error) {
+                console.error('Wikipedia APIの呼び出し中にエラーが発生しました:', error);
+                // エラー時はフォールバックとしてダミー単語を返す
+                const dummyWords = ['りんご', 'みかん', 'バナナ', 'ラーメン', 'コーヒー', 'トマト', '寿司', 'ビール', 'うどん', '鉛筆', 'パソコン', '携帯', '電車', 'バス', '学校', '会社', 'お茶', '本棚', '靴下', '指輪', '自転車', '公園', '温泉', '笑顔', '宇宙', '未来'];
+                return dummyWords[Math.floor(Math.random() * dummyWords.length)];
+            }
+        }
+
+        // --- 漢字を平仮名に変換する関数 (ExcelAPIを使用) ---
+        /**
+         * 日本語テキストの平仮名読みを取得する関数（ExcelAPIを使用）
+         * @param {string} text - 読み仮名を取得したい日本語テキスト
+         * @returns {Promise<string>} テキストの平仮名読み
+         */
+        async function convertToHiragana(text) {
+            // ExcelAPIはGETパラメータでtextを渡す
+            const params = new URLSearchParams({
+                text: text
+            }).toString();
+
+            try {
+                const response = await fetch(`${EXCEL_API_KANJI2KANA_URL}?${params}`);
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error(`ExcelAPI HTTP error! status: ${response.status}, body: ${errorBody}`);
+                    throw new Error(`ExcelAPI error: ${response.status}`);
+                }
+                
+                // ExcelAPIは直接平仮名の文字列を返します
+                const hiraganaResult = await response.text();
+                return hiraganaResult;
+
+            } catch (error) {
+                console.error('ExcelAPIの呼び出し中にエラーが発生しました:', error);
+                // エラー時は簡易的な処理として入力テキストを小文字にして返す
+                return text.toLowerCase();
+            }
+        }
+
+
+        // 母音抽出用のマッピング
+        const vowelMap = {
+            'あ': 'あ', 'い': 'い', 'う': 'う', 'え': 'え', 'お': 'お',
+            'か': 'あ', 'き': 'い', 'く': 'う', 'け': 'え', 'こ': 'お',
+            'さ': 'あ', 'し': 'い', 'す': 'う', 'せ': 'え', 'そ': 'お',
+            'た': 'あ', 'ち': 'い', 'つ': 'う', 'て': 'え', 'と': 'お',
+            'な': 'あ', 'に': 'い', 'ぬ': 'う', 'ね': 'え', 'の': 'お',
+            'は': 'あ', 'ひ': 'い', 'ふ': 'う', 'へ': 'え', 'ほ': 'お',
+            'ま': 'あ', 'み': 'い', 'む': 'う', 'め': 'え', 'も': 'お',
+            'や': 'あ', 'ゆ': 'う', 'よ': 'お',
+            'ら': 'あ', 'り': 'い', 'る': 'う', 'れ': 'え', 'ろ': 'お',
+            'わ': 'あ', 'を': 'お',
+            
+            'が': 'あ', 'ぎ': 'い', 'ぐ': 'う', 'げ': 'え', 'ご': 'お',
+            'ざ': 'あ', 'じ': 'い', 'ず': 'う', 'ぜ': 'え', 'ぞ': 'お',
+            'だ': 'あ', 'ぢ': 'い', 'づ': 'う', 'で': 'え', 'ど': 'お',
+            'ば': 'あ', 'び': 'い', 'ぶ': 'う', 'べ': 'え', 'ぼ': 'お',
+            'ぱ': 'あ', 'ぴ': 'い', 'ぷ': 'う', 'ぺ': 'え', 'ぽ': 'お',
+
+            'きゃ': 'あ', 'きゅ': 'う', 'きょ': 'お',
+            'しゃ': 'あ', 'しゅ': 'う', 'しょ': 'お',
+            'ちゃ': 'あ', 'ちゅ': 'う', 'ちょ': 'お',
+            'にゃ': 'あ', 'にゅ': 'う', 'にょ': 'お',
+            'ひゃ': 'あ', 'ひゅ': 'う', 'ひょ': 'お',
+            'みゃ': 'あ', 'みゅ': 'う', 'みょ': 'お',
+            'りゃ': 'あ', 'りゅ': 'う', 'りょ': 'お',
+            'ぎゃ': 'あ', 'ぎゅ': 'う', 'ぎょ': 'お',
+            'じゃ': 'あ', 'じゅ': 'う', 'じょ': 'お',
+            'びゃ': 'あ', 'びゅ': 'う', 'びょ': 'お',
+            'ぴゃ': 'あ', 'ぴゅ': 'う', 'ぴょ': 'お',
+
+            // 小文字の母音も対応
+            'ぁ': 'あ', 'ぃ': 'い', 'ぅ': 'う', 'ぇ': 'え', 'ぉ': 'お',
+        };
+
+        /**
+         * 日本語のひらがなから対応する母音を抽出する関数。
+         * 「ん」や「ー」は無視し、拗音も考慮します。
+         * @param {string} hiraganaText - ひらがな表記のテキスト
+         * @returns {string} 抽出された母音の文字列
+         */
+        function extractVowels(hiraganaText) {
+            let extracted = '';
+            // カタカナをひらがなに変換 (ExcelAPIの結果がひらがなであることを前提にしていますが、念のため)
+            let normalizedText = hiraganaText.normalize('NFKC').replace(/[\u30a1-\u30ff]/g, function(c) {
+                return String.fromCharCode(c.charCodeAt(0) - 0x60);
+            });
+
+            for (let i = 0; i < normalizedText.length; i++) {
+                let char = normalizedText[i];
+                let nextChar = normalizedText[i + 1];
+                let combinedChar = char + nextChar; // 拗音チェック用
+
+                // 「ん」と「ー」（長音符）は無視
+                if (char === 'ん' || char === 'ー') {
+                    continue;
+                }
+
+                // 拗音（例: きゃ, しゅ, ちょ）のチェック
+                if (i + 1 < normalizedText.length && vowelMap[combinedChar]) {
+                    extracted += vowelMap[combinedChar];
+                    i++; // 2文字分進める
+                } else if (vowelMap[char]) {
+                    extracted += vowelMap[char];
+                }
+                // マップにない文字（句読点、記号など）は無視される
+            }
+            return extracted;
+        }
+
+
+        // レーベンシュタイン距離（編集距離）を計算する関数
+        function levenshteinDistance(a, b) {
+            const dp = Array(a.length + 1).fill(0).map(() => Array(b.length + 1).fill(0));
+
+            for (let i = 0; i <= a.length; i++) {
+                dp[i][0] = i;
+            }
+            for (let j = 0; j <= b.length; j++) {
+                dp[0][j] = j;
+            }
+
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    const cost = (a[i - 1] === b[j - 1]) ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1, // 削除
+                        dp[i][j - 1] + 1, // 挿入
+                        dp[i - 1][j - 1] + cost // 置換
+                    );
+                }
+            }
+            return dp[a.length][b.length];
+        }
+
+        // スコアを計算する関数
+        async function calculateScore(themeWord, inputRhyme) {
+            let score = 0;
+
+            // 1. 母音の編集距離に基づく基本スコア
+            const themeVowels = extractVowels(await convertToHiragana(themeWord));
+            const inputVowels = extractVowels(await convertToHiragana(inputRhyme));
+
+            if (inputVowels.length === 0) {
+                return 0; // 入力がない場合はスコア0
+            }
+
+            const dist = levenshteinDistance(themeVowels, inputVowels);
+            const maxLength = Math.max(themeVowels.length, inputVowels.length);
+
+            let normalizedDistance = 1;
+            if (maxLength > 0) {
+                normalizedDistance = dist / maxLength; // 0 (完璧) から 1 (全く違う)
+            }
+
+            // 重みを掛けて基本スコアを算出（距離が小さいほど高スコア）
+            const baseScore = Math.max(0, (1 - normalizedDistance) * 100);
+            score += baseScore;
+
+            // 2. 完踏みボーナス
+            if (dist === 0 && themeVowels.length > 0) { // 母音が完全に一致し、かつ母音がある場合
+                score += 50; // 完踏みボーナスとして50点加算
+                console.log("完踏みボーナス！");
+            }
+
+            return Math.floor(score); // スコアは整数で返す
+        }
+
+        // --- ゲームロジック ---
+
+        // ゲーム初期化
+        function initializeGame() {
+            currentStage = 0;
+            totalScore = 0;
+            startScreen.classList.add('active');
+            gameScreen.classList.remove('active');
+            resultScreen.classList.remove('active');
+            inputRhyme.value = ''; // 入力欄をクリア
+            // 既存のスコア表示は使わない
+            nextStageButton.classList.add('hidden'); // 次のステージボタンを隠す
+            confirmButton.classList.remove('hidden'); // 確定ボタンは初期状態では表示
+            confirmButton.disabled = false; // 確定ボタンを有効化
+            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+        }
+
+        // ステージ開始
+        async function startStage() {
+            currentStage++;
+            if (currentStage > 10) {
+                showResult();
+                return;
+            }
+
+            // 画面更新
+            currentStageDisplay.textContent = currentStage;
+            totalScoreDisplay.textContent = totalScore;
+            inputRhyme.value = '';
+            confirmButton.classList.remove('hidden'); // 確定ボタンを表示
+            confirmButton.disabled = false; // 確定ボタンを有効化
+            nextStageButton.classList.add('hidden'); // 次のステージボタンを隠す
+            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+            inputRhyme.focus(); // 入力フィールドにフォーカス
+
+            // お題の取得と表示
+            themeWordDisplay.textContent = 'お題を読み込み中...'; // ロード中表示
+            currentThemeWord = await getRandomJapaneseWord(); 
+            themeWordDisplay.textContent = currentThemeWord;
+
+            // タイマーのリセットと開始
+            timeLeft = stageTimeLimit;
+            updateTimerDisplay();
+            timeBar.style.width = '100%';
+            timeBar.style.backgroundColor = '#28a745'; // 緑色にリセット
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                const progress = (timeLeft / stageTimeLimit) * 100;
+                timeBar.style.width = `${progress}%`;
+
+                if (timeLeft <= stageTimeLimit / 4) { // 残り時間が1/4になったら色を変える
+                    timeBar.style.backgroundColor = '#ffc107'; // 黄色
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeBar.style.backgroundColor = '#dc3545'; // 赤色
+                    endStage(); // 時間切れの場合は入力がなくてもendStageを呼ぶ
+                }
+            }, 1000);
+        }
+
+        // タイマー表示を更新
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timeDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        // ステージ終了処理
+        async function endStage(isConfirmed = false) {
+            clearInterval(timerInterval);
+            confirmButton.disabled = true; // 確定ボタンを無効化
+            confirmButton.classList.add('hidden'); // 確定ボタンを非表示に
+
+            let score = 0;
+            let submittedRhyme = inputRhyme.value.trim(); // ユーザーの解答を保持
+
+            if (isConfirmed) {
+                // 入力欄が空で確定した場合は0点
+                if (submittedRhyme === '') {
+                    score = 0;
+                } else {
+                    score = await calculateScore(currentThemeWord, submittedRhyme);
+                }
+            } else {
+                // 時間切れの場合は0点
+                score = 0;
+                submittedRhyme = '時間切れ'; // 時間切れの場合の表示
+            }
+
+            totalScore += score;
+            totalScoreDisplay.textContent = totalScore;
+            
+            // スコアと詳細をオーバーレイに表示して見せる
+            overlayStageScoreDisplay.textContent = score;
+            
+            // お題と解答はそのまま、母音はカッコで囲む
+            overlayThemeWordDisplay.textContent = currentThemeWord;
+            const themeHiragana = await convertToHiragana(currentThemeWord);
+            overlayThemeVowelsDisplay.textContent = extractVowels(themeHiragana);
+            
+            // 時間切れの場合は入力解答がないので '時間切れ' を表示
+            overlayInputRhymeDisplay.textContent = submittedRhyme;
+            // 時間切れで母音抽出ができない場合は空にするか、適切な表示にする
+            overlayInputVowelsDisplay.textContent = (submittedRhyme === '時間切れ') ? '' : extractVowels(await convertToHiragana(submittedRhyme));
+
+            scoreOverlay.classList.add('show');
+        }
+
+        // リザルト画面表示
+        function showResult() {
+            gameScreen.classList.remove('active');
+            resultScreen.classList.add('active');
+            finalScoreDisplay.textContent = totalScore;
+        }
+
+        // --- イベントリスナー ---
+
+        startButton.addEventListener('click', () => {
+            startScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            startStage();
+        });
+
+        confirmButton.addEventListener('click', () => {
+            endStage(true); // 確定ボタンが押されたのでisConfirmedをtrueに
+        });
+
+        // Enterキーで確定
+        inputRhyme.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !confirmButton.disabled) {
+                event.preventDefault(); // デフォルトの改行動作を抑制
+                endStage(true);
+            }
+        });
+
+        // オーバーレイの閉じるボタン
+        closeOverlayButton.addEventListener('click', () => {
+            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+
+            // 次のステージまたはリザルトへのボタン表示
+            if (currentStage < 10) {
+                nextStageButton.textContent = '次のステージへ';
+            } else {
+                nextStageButton.textContent = 'リザルトへ';
+            }
+            nextStageButton.classList.remove('hidden'); // 「次のステージへ」ボタンを表示
+        });
+
+        nextStageButton.addEventListener('click', () => {
+            startStage();
+        });
+
+        backToTitleButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        // ゲーム初期化
+        initializeGame();
+    </script>
+</body>
+</html>
