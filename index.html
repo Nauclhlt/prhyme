@@ -191,11 +191,41 @@
         }
         .challenge-area h2 {
             font-size: 2.5em;
-            margin-bottom: 20px;
+            margin-bottom: 0px; /* 読み仮名との間を詰める */
             color: #f0f0f0;
             word-break: break-word;
             line-height: 1.3;
         }
+        /* お題の読み仮名 */
+        #theme-reading {
+            font-size: 1.3em; /* 読み仮名を少し大きく */
+            color: #ffeb3b; /* 黄色に強調 */
+            margin-top: 5px; /* お題との間隔 */
+            margin-bottom: 20px; /* 入力欄との間隔 */
+            font-weight: bold;
+        }
+        
+        /* スキップボタンと確定ボタンのコンテナ */
+        .button-group {
+            display: flex;
+            gap: 15px; /* ボタン間のスペース */
+            margin-top: 20px; /* 上部のマージン */
+            flex-wrap: wrap; /* 小さい画面で改行 */
+            justify-content: center; /* 中央寄せ */
+        }
+
+        .button-group button {
+            margin-top: 0; /* 親要素でマージンを設定済みなので0に */
+            flex-grow: 1; /* スペースがあれば均等に広がる */
+            max-width: 150px; /* 各ボタンの最大幅 */
+        }
+        #skip-button {
+            background-color: #6c757d; /* グレー系のスキップボタン */
+        }
+        #skip-button:hover {
+            background-color: #5a6268;
+        }
+
 
         /* 既存のスコア表示は不要になったので削除または隠す */
         .score-display {
@@ -217,8 +247,8 @@
             display: none !important;
         }
 
-        /* --- 判定中オーバーレイのスタイル --- */
-        #judging-overlay {
+        /* --- 判定中/ロード中オーバーレイのスタイル --- */
+        #judging-overlay, #loading-overlay { /* 両方に適用 */
             position: fixed;
             top: 0;
             left: 0;
@@ -226,21 +256,38 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.8);
             display: flex;
+            flex-direction: column; /* テキストとスピナーを縦並びにするため */
             justify-content: center;
             align-items: center;
-            z-index: 2000; /* スコアオーバーレイより手前 */
+            z-index: 2000; 
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
         }
-        #judging-overlay.show {
+        #judging-overlay.show, #loading-overlay.show {
             opacity: 1;
             visibility: visible;
         }
-        #judging-overlay p {
+        #judging-overlay p, #loading-overlay p {
             font-size: 3em;
             color: #fff;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            margin-bottom: 20px; /* スピナーとの間隔 */
+        }
+
+        /* ローディングスピナーのスタイル */
+        .loader {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #007bff; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
 
@@ -268,14 +315,14 @@
 
         .overlay-content {
             background-color: #2a2a4a; /* コンテナと同じ背景色 */
-            padding: 40px;
+            padding: 30px; /* ★調整: 40px -> 30px */
             border-radius: 15px;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
             text-align: center;
             transform: translateY(20px); /* 少し下にずらしてアニメーション */
             transition: transform 0.3s ease;
             width: 90%; /* 横幅を拡大 */
-            max-width: 600px; /* 最大幅を設定 */
+            max-width: 550px; /* ★調整: 600px -> 550px */
             box-sizing: border-box;
         }
 
@@ -284,49 +331,55 @@
         }
 
         .overlay-content h3 {
-            font-size: 2em;
+            font-size: 1.8em; /* ★調整: 2em -> 1.8em */
             color: #f0f0f0;
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 10px; /* ★調整: 15px -> 10px */
         }
 
         /* スコアの行 */
         .overlay-content p.main-score { 
-            font-size: 1.8em; 
+            font-size: 1.6em; /* ★調整: 1.8em -> 1.6em */
             color: #00ff99;
             font-weight: bold;
-            margin-bottom: 5px; /* ボーナス表示との間隔 */
+            margin-bottom: 5px; 
         }
-        /* 完踏みボーナス表示 */
-        .overlay-content p.bonus-info {
-            font-size: 0.8em; /* 小さく */
-            color: #ffeb3b; /* 黄色に */
-            margin-top: 0;
-            margin-bottom: 30px; /* 次の項目との間隔 */
-            font-weight: bold;
+        /* スコア内訳のコンテナ */
+        #overlay-score-breakdown { 
+            margin-top: 10px; /* ★調整: 15px -> 10px */
+            margin-bottom: 20px; /* ★調整: 30px -> 20px */
+            padding: 8px 0; /* ★調整: 10px -> 8px */
+            border-top: 1px solid #5a5a7a;
+            border-bottom: 1px solid #5a5a7a;
+            font-size: 0.9em; /* ★調整: 1em -> 0.9em */
+            color: #b0b0d0;
+            line-height: 1.5; /* ★調整: 1.6 -> 1.5 */
+        }
+        #overlay-score-breakdown p {
+            margin: 3px 0; /* ★調整: 5px -> 3px */
         }
 
 
         /* お題と解答の行 */
         .overlay-content p.primary-info {
-            font-size: 1.5em; /* お題・解答を大きく */
-            color: #f0f0f0; /* 色を明るく */
-            margin-bottom: 5px; /* 母音との間隔 */
+            font-size: 1.3em; /* ★調整: 1.5em -> 1.3em */
+            color: #f0f0f0; 
+            margin-bottom: 5px; 
             font-weight: bold;
-            word-break: break-word; /* 長い単語で改行 */
+            word-break: break-word; 
         }
 
         /* 母音の行 */
         .overlay-content p.vowel-info {
-            font-size: 0.9em; /* 母音を小さく */
-            color: #ffeb3b; /* 黄色に強調 */
+            font-size: 0.8em; /* ★調整: 0.9em -> 0.8em */
+            color: #ffeb3b; 
             margin-top: 0;
-            margin-bottom: 20px; /* 次の項目との間隔 */
-            word-break: break-word; /* 長い単語で改行 */
+            margin-bottom: 15px; /* ★調整: 20px -> 15px */
+            word-break: break-word; 
         }
 
         .overlay-content button {
-            background-color: #28a745; /* 緑系の閉じるボタン */
+            background-color: #28a745; 
             margin-top: 0;
         }
 
@@ -342,10 +395,9 @@
                 min-height: 550px; /* 大きな画面で最低限の高さを確保 */
                 max-height: 80vh; /* デスクトップでは少し余裕を持たせる */
             }
-            button {
-                padding: 12px 25px; /* 少し大きく */
+            .button-group button {
+                padding: 12px 25px; 
                 font-size: 1.1em;
-                margin-top: 25px;
             }
             input[type="text"] {
                 padding: 15px 25px;
@@ -359,6 +411,9 @@
             .challenge-area h2 {
                 font-size: 3em;
             }
+            #theme-reading {
+                font-size: 1.6em; 
+            }
             .header-info {
                 font-size: 1.2em;
                 margin-bottom: 20px;
@@ -367,21 +422,21 @@
                 font-size: 5em;
             }
             .overlay-content h3 {
-                font-size: 2.5em;
+                font-size: 2em; /* ★調整: 2.5em -> 2em */
             }
             .overlay-content p.main-score {
-                font-size: 2.5em;
+                font-size: 2.2em; /* ★調整: 2.5em -> 2.2em */
             }
-            .overlay-content p.bonus-info {
-                font-size: 1em;
+            #overlay-score-breakdown { 
+                font-size: 1em; /* ★調整: 1.1em -> 1em */
             }
             .overlay-content p.primary-info {
-                font-size: 2em; /* タブレット以上でさらに大きく */
+                font-size: 1.8em; /* ★調整: 2em -> 1.8em */
             }
             .overlay-content p.vowel-info {
-                font-size: 1.1em; /* タブレット以上で少し大きく */
+                font-size: 1em; /* ★調整: 1.1em -> 1em */
             }
-            #judging-overlay p {
+            #judging-overlay p, #loading-overlay p {
                 font-size: 4em;
             }
         }
@@ -397,7 +452,7 @@
 
         <div id="game-screen" class="screen">
             <div class="header-info">
-                <p>ステージ: <span id="current-stage">1</span> / 10</p>
+                <p>ステージ: <span id="current-stage">1</span> / <span id="total-stages">5</span></p> 
                 <p>総合スコア: <span id="total-score">0</span></p>
             </div>
             <div class="timer-container">
@@ -407,8 +462,12 @@
             <div class="challenge-area">
                 <p class="label">お題:</p>
                 <h2 id="theme-word"></h2>
+                <p id="theme-reading"></p> 
                 <input type="text" id="input-rhyme" placeholder="韻を踏んで入力...">
-                <button id="confirm-button">確定</button>
+                <div class="button-group"> 
+                    <button id="confirm-button">確定</button>
+                    <button id="skip-button">スキップ (0点)</button>
+                </div>
             </div>
             <div class="score-display">
                 <p>今回のスコア: <span id="stage-score">0</span></p>
@@ -426,13 +485,27 @@
 
     <div id="judging-overlay">
         <p>判定中...</p>
+        <div class="loader"></div> 
+    </div>
+
+    <div id="loading-overlay"> 
+        <p>お題を取得中...</p>
+        <div class="loader"></div>
     </div>
 
     <div id="score-overlay">
         <div class="overlay-content">
             <h3>今回のスコア</h3>
             <p class="main-score"><span id="overlay-stage-score">0</span> 点</p>
-            <p class="bonus-info hidden" id="overlay-bonus-info"></p> <p class="primary-info"><span id="overlay-theme-word"></span></p>
+            
+            <div id="overlay-score-breakdown">
+                <p>母音一致度: <span id="score-vowel-match">0</span> 点</p>
+                <p>完踏みボーナス: <span id="score-perfect-rhyme">0</span> 点</p>
+                <p>頭韻: <span id="score-alliteration">0</span> 点</p>
+                <p>脚韻: <span id="score-rhyme">0</span> 点</p>
+                <p>リズム: <span id="score-rhythm">0</span> 点</p>
+            </div>
+            <p class="primary-info"><span id="overlay-theme-word"></span></p>
             <p class="vowel-info">(<span id="overlay-theme-vowels"></span>)</p>
             <p class="primary-info"><span id="overlay-input-rhyme"></span></p>
             <p class="vowel-info">(<span id="overlay-input-vowels"></span>)</p>
@@ -448,12 +521,15 @@
 
         const startButton = document.getElementById('start-button');
         const currentStageDisplay = document.getElementById('current-stage');
+        const totalStagesDisplay = document.getElementById('total-stages'); 
         const totalScoreDisplay = document.getElementById('total-score');
         const timeBar = document.getElementById('time-bar');
         const timeDisplay = document.getElementById('time-display');
         const themeWordDisplay = document.getElementById('theme-word');
+        const themeReadingDisplay = document.getElementById('theme-reading'); 
         const inputRhyme = document.getElementById('input-rhyme');
         const confirmButton = document.getElementById('confirm-button');
+        const skipButton = document.getElementById('skip-button'); 
         const nextStageButton = document.getElementById('next-stage-button');
         const finalScoreDisplay = document.getElementById('final-score');
         const backToTitleButton = document.getElementById('back-to-title-button');
@@ -461,24 +537,34 @@
         // スコアオーバーレイ関連のDOM要素
         const scoreOverlay = document.getElementById('score-overlay');
         const overlayStageScoreDisplay = document.getElementById('overlay-stage-score');
+        const overlayScoreBreakdown = document.getElementById('overlay-score-breakdown'); 
+        const scoreVowelMatch = document.getElementById('score-vowel-match'); 
+        const scorePerfectRhyme = document.getElementById('score-perfect-rhyme'); 
+        const scoreAlliteration = document.getElementById('score-alliteration'); 
+        const scoreRhyme = document.getElementById('score-rhyme'); 
+        const scoreRhythm = document.getElementById('score-rhythm'); 
+
         const closeOverlayButton = document.getElementById('close-overlay-button');
         const overlayThemeWordDisplay = document.getElementById('overlay-theme-word');
         const overlayThemeVowelsDisplay = document.getElementById('overlay-theme-vowels');
         const overlayInputRhymeDisplay = document.getElementById('overlay-input-rhyme');
         const overlayInputVowelsDisplay = document.getElementById('overlay-input-vowels');
-        const overlayBonusInfo = document.getElementById('overlay-bonus-info'); // 完踏みボーナス表示用
 
         // 判定中オーバーレイのDOM要素
         const judgingOverlay = document.getElementById('judging-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay'); 
 
 
         // ゲームの状態変数
         let currentStage = 0;
         let totalScore = 0;
-        let stageTimeLimit = 60; // 各ステージの制限時間（秒）
+        const totalStages = 5; 
+        let stageTimeLimit = 60; 
         let timeLeft = stageTimeLimit;
         let timerInterval;
         let currentThemeWord = '';
+        let currentThemeReading = ''; 
+
 
         // --- APIエンドポイント ---
         const WIKIPEDIA_RANDOM_API_URL = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&list=random&rnnamespace=0&rnlimit=1&origin=*';
@@ -501,21 +587,36 @@
                 if (pages && pages.length > 0) {
                     let title = pages[0].title;
                     
-                    // 括弧以降の文字列を除去
-                    const bracketIndex = title.indexOf('(');
-                    if (bracketIndex !== -1) {
-                        title = title.substring(0, bracketIndex).trim();
+                    let cleanedTitle = title;
+                    // 半角・全角の括弧以降の文字列を除去
+                    const bracketIndexHalf = cleanedTitle.indexOf('(');
+                    const bracketIndexFull = cleanedTitle.indexOf('（');
+
+                    if (bracketIndexHalf !== -1) {
+                        cleanedTitle = cleanedTitle.substring(0, bracketIndexHalf).trim();
                     }
+                    if (bracketIndexFull !== -1) {
+                        if (bracketIndexHalf === -1 || bracketIndexFull < bracketIndexHalf) {
+                            cleanedTitle = cleanedTitle.substring(0, bracketIndexFull).trim();
+                        }
+                    }
+
                     // その他の不要な文字も除去 (例: -、・、〜など)
-                    title = title.replace(/[・\-〜]/g, '');
+                    cleanedTitle = cleanedTitle.replace(/[・\-〜]/g, '');
 
+                    // 数字やアルファベット（半角・全角）が含まれるかチェック
+                    const hasNumbersOrAlphabets = /[0-9０-９a-zA-ZＡ-Ｚａ-ｚ]/.test(cleanedTitle);
 
-                    // 記事タイトルが長すぎたり、空、不適切な場合は再取得を試みる
-                    if (title.length === 0 || title.length > 15 || title.includes('一覧') || title.includes('カテゴリ') || title.includes('の人物') || title.includes('駅') || title.includes('年') || title.includes('目録')) {
-                        console.warn('タイトルが長すぎる、空、または不適切です。再取得します。', title);
+                    // 記事タイトルが長すぎたり、空、不適切、数字/アルファベットを含む場合は再取得を試みる
+                    if (cleanedTitle.length === 0 || cleanedTitle.length > 15 || 
+                        cleanedTitle.includes('一覧') || cleanedTitle.includes('カテゴリ') || 
+                        cleanedTitle.includes('の人物') || cleanedTitle.includes('駅') || 
+                        cleanedTitle.includes('年') || cleanedTitle.includes('目録') ||
+                        hasNumbersOrAlphabets) { 
+                        console.warn('タイトルが長すぎる、空、不適切、または数字/アルファベットを含みます。再取得します。', title);
                         return getRandomJapaneseWord(); // 再帰的に再取得
                     }
-                    return title;
+                    return cleanedTitle;
                 }
                 throw new Error('No random page found.');
             } catch (error) {
@@ -533,18 +634,15 @@
          * @returns {Promise<string>} テキストの平仮名読み
          */
         async function convertToHiragana(text) {
-            // 空文字列の場合は空を返す
             if (!text || text.trim() === '') {
                 return '';
             }
 
-            // URLパラメータとしてテキストを付加
             const params = new URLSearchParams({
                 text: text
             }).toString();
 
             try {
-                // GAS WebアプリのエンドポイントにGETリクエストを送る
                 const response = await fetch(`${GAS_WEB_APP_URL}?${params}`);
 
                 if (!response.ok) {
@@ -553,20 +651,17 @@
                     throw new Error(`GAS Web App error: ${response.status}`);
                 }
                 
-                // GAS Webアプリから返ってきたテキストをそのまま取得
-                const hiraganaResult = response.text(); // ここを修正 (fetch APIはresponse.text()を使います)
+                const hiraganaResult = await response.text(); 
                 return hiraganaResult;
 
             } catch (error) {
                 console.error('平仮名変換中にエラーが発生しました:', error);
-                // エラー時は簡易的な処理として入力テキストを小文字にして返す
-                return text.toLowerCase();
+                return text.toLowerCase(); // エラー時は簡易的な処理として入力テキストを小文字にして返す
             }
         }
 
 
         // 母音抽出用のマッピング
-        // 「ん」を含めるため、ここには含めない（後で処理）
         const vowelMap = {
             'あ': 'あ', 'い': 'い', 'う': 'う', 'え': 'え', 'お': 'お',
             'か': 'あ', 'き': 'い', 'く': 'う', 'け': 'え', 'こ': 'お',
@@ -597,19 +692,17 @@
             'びゃ': 'あ', 'びゅ': 'う', 'びょ': 'お',
             'ぴゃ': 'あ', 'ぴゅ': 'う', 'ぴょ': 'お',
 
-            // 小文字の母音も対応
             'ぁ': 'あ', 'ぃ': 'い', 'ぅ': 'う', 'ぇ': 'え', 'ぉ': 'お',
         };
 
         /**
          * 日本語のひらがなから対応する母音を抽出する関数。
-         * 「ん」は'n'として扱い、拗音も考慮します。
+         * 「ん」は「ん」として扱い、拗音も考慮します。
          * @param {string} hiraganaText - ひらがな表記のテキスト
          * @returns {string} 抽出された母音の文字列
          */
         function extractVowels(hiraganaText) {
             let extracted = '';
-            // カタカナをひらがなに変換
             let normalizedText = hiraganaText.normalize('NFKC').replace(/[\u30a1-\u30ff]/g, function(c) {
                 return String.fromCharCode(c.charCodeAt(0) - 0x60);
             });
@@ -617,30 +710,25 @@
             for (let i = 0; i < normalizedText.length; i++) {
                 let char = normalizedText[i];
                 let nextChar = normalizedText[i + 1];
-                let combinedChar = char + nextChar; // 拗音チェック用
+                let combinedChar = char + nextChar; 
 
-                // 「ん」を母音に含める (英語の'n'のように扱う)
                 if (char === 'ん') {
                     extracted += 'ん'; 
                     continue;
                 }
-                // 「ー」（長音符）は無視
-                if (char === 'ー') {
+                if (char === 'ー') { // 長音符は無視
                     continue;
                 }
 
-                // 拗音（例: きゃ, しゅ, ちょ）のチェック
                 if (i + 1 < normalizedText.length && vowelMap[combinedChar]) {
                     extracted += vowelMap[combinedChar];
-                    i++; // 2文字分進める
+                    i++; 
                 } else if (vowelMap[char]) {
                     extracted += vowelMap[char];
                 }
-                // マップにない文字（句読点、記号など）は無視される
             }
             return extracted;
         }
-
 
         // レーベンシュタイン距離（編集距離）を計算する関数
         function levenshteinDistance(a, b) {
@@ -657,51 +745,135 @@
                 for (let j = 1; j <= b.length; j++) {
                     const cost = (a[i - 1] === b[j - 1]) ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1, // 削除
-                        dp[i][j - 1] + 1, // 挿入
-                        dp[i - 1][j - 1] + cost // 置換
+                        dp[i - 1][j] + 1, 
+                        dp[i][j - 1] + 1, 
+                        dp[i - 1][j - 1] + cost 
                     );
                 }
             }
             return dp[a.length][b.length];
         }
 
+        /**
+         * 最長共通接頭辞 (Longest Common Prefix) の長さを計算する関数
+         * @param {string} s1 
+         * @param {string} s2 
+         * @returns {number} 最長共通接頭辞の長さ
+         */
+        function longestCommonPrefixLength(s1, s2) {
+            let length = 0;
+            const minLength = Math.min(s1.length, s2.length);
+            for (let i = 0; i < minLength; i++) {
+                if (s1[i] === s2[i]) {
+                    length++;
+                } else {
+                    break;
+                }
+            }
+            return length;
+        }
+
+        /**
+         * 最長共通接尾辞 (Longest Common Suffix) の長さを計算する関数
+         * @param {string} s1 
+         * @param {string} s2 
+         * @returns {number} 最長共通接尾辞の長さ
+         */
+        function longestCommonSuffixLength(s1, s2) {
+            let length = 0;
+            const minLength = Math.min(s1.length, s2.length);
+            for (let i = 1; i <= minLength; i++) {
+                if (s1[s1.length - i] === s2[s2.length - i]) {
+                    length++;
+                } else {
+                    break;
+                }
+            }
+            return length;
+        }
+
+
         // スコアを計算する関数
         async function calculateScore(themeWord, inputRhyme) {
-            let score = 0;
-            let bonusText = ''; // 完踏みボーナス表示用テキスト
+            let totalScore = 0;
+            let vowelMatchScore = 0;
+            let perfectRhymeBonus = 0;
+            let alliterationScore = 0;
+            let rhymeScore = 0;
+            let rhythmScore = 0;
 
-            // 1. 母音の編集距離に基づく基本スコア
-            const hiraganaTheme = await convertToHiragana(themeWord);
-            const hiraganaInput = await convertToHiragana(inputRhyme);
-            console.log(hiraganaTheme + "  " + hiraganaInput);
-            const themeVowels = extractVowels(hiraganaTheme);
-            const inputVowels = extractVowels(hiraganaInput);
+            const themeVowels = extractVowels(currentThemeReading); 
+            const inputHiragana = await convertToHiragana(inputRhyme);
+            const inputVowels = extractVowels(inputHiragana);
+
+            // リズム点計算のためのひらがな文字数
+            const themeHiraganaLength = currentThemeReading.length;
+            const inputHiraganaLength = inputHiragana.length;
+
 
             if (inputVowels.length === 0) {
-                return { score: 0, bonusText: '', themeVowels: themeVowels, inputVowels: inputVowels }; // 入力がない場合はスコア0
+                // 回答が空の場合、全てのスコアは0
+                return { 
+                    totalScore: 0, 
+                    vowelMatchScore: 0, 
+                    perfectRhymeBonus: 0, 
+                    alliterationScore: 0, 
+                    rhymeScore: 0, 
+                    rhythmScore: 0,
+                    themeVowels: themeVowels, 
+                    inputVowels: inputVowels 
+                }; 
             }
 
+            // 1. 母音一致度 (最大100点)
             const dist = levenshteinDistance(themeVowels, inputVowels);
-            const maxLength = Math.max(themeVowels.length, inputVowels.length);
+            const maxLengthVowels = Math.max(themeVowels.length, inputVowels.length);
 
             let normalizedDistance = 1;
-            if (maxLength > 0) {
-                normalizedDistance = dist / maxLength; // 0 (完璧) から 1 (全く違う)
+            if (maxLengthVowels > 0) {
+                normalizedDistance = dist / maxLengthVowels; 
+            }
+            vowelMatchScore = Math.floor(Math.max(0, (1 - normalizedDistance) * 100));
+            totalScore += vowelMatchScore;
+
+            // 2. 完踏みボーナス (最大50点)
+            if (dist === 0 && themeVowels.length > 0) { 
+                perfectRhymeBonus = 50; 
+                totalScore += perfectRhymeBonus;
             }
 
-            // 重みを掛けて基本スコアを算出（距離が小さいほど高スコア）
-            const baseScore = Math.max(0, (1 - normalizedDistance) * 100);
-            score += baseScore;
-
-            // 2. 完踏みボーナス
-            if (dist === 0 && themeVowels.length > 0) { // 母音が完全に一致し、かつ母音がある場合
-                score += 50; // 完踏みボーナスとして50点加算
-                bonusText = '完踏み+50'; // ボーナス表示テキスト設定
-                console.log("完踏みボーナス！");
+            // 3. 頭韻 (最大50点)
+            const lcpLength = longestCommonPrefixLength(themeVowels, inputVowels);
+            const minLengthVowelsForPrefix = Math.min(themeVowels.length, inputVowels.length);
+            if (minLengthVowelsForPrefix > 0) {
+                alliterationScore = Math.floor((lcpLength / minLengthVowelsForPrefix) * 50);
             }
+            totalScore += alliterationScore;
 
-            return { score: Math.floor(score), bonusText: bonusText, themeVowels: themeVowels, inputVowels: inputVowels }; // スコアとボーナス情報を返す
+            // 4. 脚韻 (最大50点)
+            const lcsLength = longestCommonSuffixLength(themeVowels, inputVowels);
+            const minLengthVowelsForSuffix = Math.min(themeVowels.length, inputVowels.length);
+            if (minLengthVowelsForSuffix > 0) {
+                rhymeScore = Math.floor((lcsLength / minLengthVowelsForSuffix) * 50);
+            }
+            totalScore += rhymeScore;
+
+            // 5. リズム (最大50点)
+            const lengthDiff = Math.abs(themeHiraganaLength - inputHiraganaLength);
+            rhythmScore = Math.floor(Math.max(0, 50 - lengthDiff * 5));
+            totalScore += rhythmScore;
+
+
+            return { 
+                totalScore: Math.floor(totalScore), 
+                vowelMatchScore: vowelMatchScore, 
+                perfectRhymeBonus: perfectRhymeBonus, 
+                alliterationScore: alliterationScore, 
+                rhymeScore: rhymeScore, 
+                rhythmScore: rhythmScore,
+                themeVowels: themeVowels, 
+                inputVowels: inputVowels 
+            }; 
         }
 
         // --- ゲームロジック ---
@@ -713,65 +885,77 @@
             startScreen.classList.add('active');
             gameScreen.classList.remove('active');
             resultScreen.classList.remove('active');
-            inputRhyme.value = ''; // 入力欄をクリア
-            // 既存のスコア表示は使わない
-            nextStageButton.classList.add('hidden'); // 次のステージボタンを隠す
-            confirmButton.classList.remove('hidden'); // 確定ボタンは初期状態では表示
-            confirmButton.disabled = false; // 確定ボタンを有効化
-            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
-            judgingOverlay.classList.remove('show'); // 判定中オーバーレイを非表示に
+            inputRhyme.value = ''; 
+            nextStageButton.classList.add('hidden'); // ★修正: 初期化時に隠す
+            confirmButton.classList.add('hidden'); 
+            confirmButton.disabled = true; 
+            skipButton.classList.add('hidden'); 
+            skipButton.disabled = true; 
+            scoreOverlay.classList.remove('show'); 
+            judgingOverlay.classList.remove('show'); 
+            loadingOverlay.classList.remove('show'); 
+            totalStagesDisplay.textContent = totalStages; 
         }
 
         // ステージ開始
         async function startStage() {
             currentStage++;
-            if (currentStage > 10) {
+            if (currentStage > totalStages) { 
                 showResult();
                 return;
             }
 
-            // 画面更新
+            loadingOverlay.classList.add('show');
+            gameScreen.classList.remove('active'); 
+
             currentStageDisplay.textContent = currentStage;
             totalScoreDisplay.textContent = totalScore;
             inputRhyme.value = '';
-            confirmButton.classList.remove('hidden'); // 確定ボタンを表示
-            confirmButton.disabled = false; // 確定ボタンを有効化
-            nextStageButton.classList.add('hidden'); // 次のステージボタンを隠す
-            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
-            judgingOverlay.classList.remove('show'); // 判定中オーバーレイを非表示に
-            inputRhyme.focus(); // 入力フィールドにフォーカス
+            themeWordDisplay.textContent = 'お題を読み込み中...'; 
+            themeReadingDisplay.textContent = ''; 
+            nextStageButton.classList.add('hidden'); // ★修正: 新しいステージ開始時にも隠す
 
-            // お題の取得と表示
-            themeWordDisplay.textContent = 'お題を読み込み中...'; // ロード中表示
             currentThemeWord = await getRandomJapaneseWord(); 
+            currentThemeReading = await convertToHiragana(currentThemeWord); 
+
+            loadingOverlay.classList.remove('show'); 
+            gameScreen.classList.add('active'); 
+
             themeWordDisplay.textContent = currentThemeWord;
+            themeReadingDisplay.textContent = currentThemeReading; 
+
+            confirmButton.classList.remove('hidden'); 
+            confirmButton.disabled = false; 
+            skipButton.classList.remove('hidden'); 
+            skipButton.disabled = false; 
+            
+            inputRhyme.focus(); 
 
             // タイマーのリセットと開始
             timeLeft = stageTimeLimit;
-            updateTimerDisplay(); // ここで呼び出されます
+            updateTimerDisplay(); 
             timeBar.style.width = '100%';
-            timeBar.style.backgroundColor = '#28a745'; // 緑色にリセット
+            timeBar.style.backgroundColor = '#28a745'; 
 
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
-                updateTimerDisplay(); // ここで呼び出されます
+                updateTimerDisplay(); 
                 const progress = (timeLeft / stageTimeLimit) * 100;
                 timeBar.style.width = `${progress}%`;
 
-                if (timeLeft <= stageTimeLimit / 4) { // 残り時間が1/4になったら色を変える
-                    timeBar.style.backgroundColor = '#ffc107'; // 黄色
+                if (timeLeft <= stageTimeLimit / 4) { 
+                    timeBar.style.backgroundColor = '#ffc107'; 
                 }
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    timeBar.style.backgroundColor = '#dc3545'; // 赤色
-                    endStage(); // 時間切れの場合は入力がなくてもendStageを呼ぶ
+                    timeBar.style.backgroundColor = '#dc3545'; 
+                    endStage(false, true); 
                 }
             }, 1000);
         }
 
         // タイマー表示を更新
-        // ★★★ 抜けていた関数をここに追加しました！ ★★★
         function updateTimerDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
@@ -779,63 +963,87 @@
         }
 
         // ステージ終了処理
-        async function endStage(isConfirmed = false) {
+        async function endStage(isConfirmed = false, isSkipped = false) { 
             clearInterval(timerInterval);
-            confirmButton.disabled = true; // 確定ボタンを無効化
-            confirmButton.classList.add('hidden'); // 確定ボタンを非表示に
-            inputRhyme.blur(); // 入力フィールドからフォーカスを外す
+            confirmButton.disabled = true; 
+            confirmButton.classList.add('hidden'); 
+            skipButton.disabled = true; 
+            skipButton.classList.add('hidden'); 
+            inputRhyme.blur(); 
 
-            // 判定中オーバーレイを表示
             judgingOverlay.classList.add('show');
-            scoreOverlay.classList.remove('show'); // 念のためスコアオーバーレイは非表示に
+            scoreOverlay.classList.remove('show'); 
+            loadingOverlay.classList.remove('show'); 
 
 
-            let scoreResult; // score, bonusText, themeVowels, inputVowels を格納するオブジェクト
-            let submittedRhyme = inputRhyme.value.trim(); // ユーザーの解答を保持
+            let scoreResult; 
+            let submittedRhyme = inputRhyme.value.trim(); 
 
-            if (isConfirmed) {
-                // 入力欄が空で確定した場合は0点
+            if (isSkipped) { 
+                // スキップの場合、各スコアは0
+                scoreResult = { 
+                    totalScore: 0, 
+                    vowelMatchScore: 0, 
+                    perfectRhymeBonus: 0, 
+                    alliterationScore: 0, 
+                    rhymeScore: 0, 
+                    rhythmScore: 0,
+                    themeVowels: extractVowels(currentThemeReading), 
+                    inputVowels: '' 
+                }; 
+                submittedRhyme = 'スキップされました';
+            } else if (isConfirmed) { 
                 if (submittedRhyme === '') {
-                    // 入力がない場合でも、お題の母音は取得しておく
-                    const themeVowelsForEmptyInput = extractVowels(await convertToHiragana(currentThemeWord));
-                    scoreResult = { score: 0, bonusText: '', themeVowels: themeVowelsForEmptyInput, inputVowels: '' };
+                    // 回答が空の場合も各スコアは0
+                    scoreResult = { 
+                        totalScore: 0, 
+                        vowelMatchScore: 0, 
+                        perfectRhymeBonus: 0, 
+                        alliterationScore: 0, 
+                        rhymeScore: 0, 
+                        rhythmScore: 0,
+                        themeVowels: extractVowels(currentThemeReading), 
+                        inputVowels: '' 
+                    }; 
                 } else {
                     scoreResult = await calculateScore(currentThemeWord, submittedRhyme);
                 }
-            } else {
-                // 時間切れの場合は0点
-                // 時間切れの場合も、お題の母音は取得しておく
-                const themeVowelsForTimeout = extractVowels(await convertToHiragana(currentThemeWord));
-                scoreResult = { score: 0, bonusText: '', themeVowels: themeVowelsForTimeout, inputVowels: '' };
-                submittedRhyme = '時間切れ'; // 時間切れの場合の表示
+            } else { 
+                // 時間切れの場合も各スコアは0
+                 scoreResult = { 
+                    totalScore: 0, 
+                    vowelMatchScore: 0, 
+                    perfectRhymeBonus: 0, 
+                    alliterationScore: 0, 
+                    rhymeScore: 0, 
+                    rhythmScore: 0,
+                    themeVowels: extractVowels(currentThemeReading), 
+                    inputVowels: '' 
+                }; 
+                 submittedRhyme = '時間切れ'; 
             }
 
-            totalScore += scoreResult.score;
+            totalScore += scoreResult.totalScore; 
             totalScoreDisplay.textContent = totalScore;
             
-            // 判定中オーバーレイを隠し、スコアオーバーレイを表示
             judgingOverlay.classList.remove('show');
             scoreOverlay.classList.add('show');
             
-            // スコアと詳細をオーバーレイに表示して見せる
-            overlayStageScoreDisplay.textContent = scoreResult.score;
+            overlayStageScoreDisplay.textContent = scoreResult.totalScore; 
             
-            // 完踏みボーナス表示の更新
-            if (scoreResult.bonusText) {
-                overlayBonusInfo.textContent = scoreResult.bonusText;
-                overlayBonusInfo.classList.remove('hidden');
-            } else {
-                overlayBonusInfo.classList.add('hidden');
-            }
+            // スコア内訳を表示
+            scoreVowelMatch.textContent = scoreResult.vowelMatchScore;
+            scorePerfectRhyme.textContent = scoreResult.perfectRhymeBonus;
+            scoreAlliteration.textContent = scoreResult.alliterationScore;
+            scoreRhyme.textContent = scoreResult.rhymeScore;
+            scoreRhythm.textContent = scoreResult.rhythmScore;
 
-            // お題と解答はそのまま、母音はカッコで囲む
+
             overlayThemeWordDisplay.textContent = currentThemeWord;
-            overlayThemeVowelsDisplay.textContent = scoreResult.themeVowels; // calculateScoreから直接取得
+            overlayThemeVowelsDisplay.textContent = scoreResult.themeVowels; 
             
-            // 時間切れの場合は入力解答がないので '時間切れ' を表示
             overlayInputRhymeDisplay.textContent = submittedRhyme;
-            // 時間切れで母音抽出ができない場合は空にするか、適切な表示にする
-            overlayInputVowelsDisplay.textContent = (submittedRhyme === '時間切れ') ? '' : scoreResult.inputVowels; // calculateScoreから直接取得
+            overlayInputVowelsDisplay.textContent = (isSkipped || submittedRhyme === '時間切れ' || submittedRhyme === '') ? '' : scoreResult.inputVowels; 
         }
 
         // リザルト画面表示
@@ -849,33 +1057,36 @@
 
         startButton.addEventListener('click', () => {
             startScreen.classList.remove('active');
-            gameScreen.classList.add('active');
-            startStage();
+            startStage(); 
         });
 
         confirmButton.addEventListener('click', () => {
-            endStage(true); // 確定ボタンが押されたのでisConfirmedをtrueに
+            endStage(true, false); 
         });
+
+        skipButton.addEventListener('click', () => {
+            endStage(false, true); 
+        });
+
 
         // Enterキーで確定
         inputRhyme.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !confirmButton.disabled) {
-                event.preventDefault(); // デフォルトの改行動作を抑制
-                endStage(true);
+                event.preventDefault(); 
+                endStage(true, false);
             }
         });
 
         // オーバーレイの閉じるボタン
         closeOverlayButton.addEventListener('click', () => {
-            scoreOverlay.classList.remove('show'); // オーバーレイを非表示に
+            scoreOverlay.classList.remove('show'); 
 
-            // 次のステージまたはリザルトへのボタン表示
-            if (currentStage < 10) {
+            if (currentStage < totalStages) { 
                 nextStageButton.textContent = '次のステージへ';
             } else {
                 nextStageButton.textContent = 'リザルトへ';
             }
-            nextStageButton.classList.remove('hidden'); // 「次のステージへ」ボタンを表示
+            nextStageButton.classList.remove('hidden'); 
         });
 
         nextStageButton.addEventListener('click', () => {
